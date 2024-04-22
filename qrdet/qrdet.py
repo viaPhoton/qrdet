@@ -1,18 +1,17 @@
 """
-This class the YOLOv7 QR Detector. It uses a YOLOv7-tiny model trained to detect QR codes in the wild.
+This is a customed version of the QRDetector class from the qrdet library.
 
-Author: Eric Canas.
-Github: https://github.com/Eric-Canas/qrdet
-Email: eric@ericcanas.com
-Date: 11-12-2022
+Author: viaPhoton, Eric Canas
+Github: https://github.com/viaphoton/qrdet
 """
 
 from __future__ import annotations
 import os
-
 import numpy as np
 import requests
 import tqdm
+import boto3
+from urllib.parse import urlparse
 
 from ultralytics import YOLO
 
@@ -20,13 +19,16 @@ from qrdet import _yolo_v8_results_to_dict, _prepare_input, BBOX_XYXY, CONFIDENC
 
 _WEIGHTS_FOLDER = os.path.join(os.path.dirname(__file__), '.model')
 _CURRENT_RELEASE_TXT_FILE = os.path.join(_WEIGHTS_FOLDER, 'current_release.txt')
-_WEIGHTS_URL_FOLDER = 'https://github.com/Eric-Canas/qrdet/releases/download/v2.0_release'
-_MODEL_FILE_NAME = 'qrdet-{size}.pt'
+_MODEL_FILE_NAME = 'qrdet-viaphoton.onnx'
 
 
 class QRDetector:
-    def __init__(self, model_size: str = 's', conf_th: float = 0.5, nms_iou: float = 0.3,
-                 weights_folder: str = _WEIGHTS_FOLDER):
+# <<<<<<< HEAD
+#     def __init__(self, model_size: str = 's', conf_th: float = 0.5, nms_iou: float = 0.3,
+#                  weights_folder: str = _WEIGHTS_FOLDER):
+# =======
+    def __init__(self, model_zoo: str = None, conf_th: float = 0.5, nms_iou: float = 0.3):
+
         """
         Initialize the QRDetector.
         It loads the weights of the YOLOv8 model and prepares it for inference.
@@ -37,17 +39,14 @@ class QRDetector:
         :param nms_iou: float. The IoU threshold to use for the Non-Maximum Suppression. Detections with an IoU higher
                                 than this value will be discarded. Default: 0.3.
         """
-        assert model_size in ('n', 's', 'm', 'l'), f'Invalid model size: {model_size}. ' \
-                                                   f'Valid values are: \'n\', \'s\', \'m\' or \'l\'.'
-        self._model_size = model_size
-        self.weights_folder = weights_folder
-        self.__current_release_txt_file = os.path.join(weights_folder, 'current_release.txt')
+        
+        self.model_zoo = model_zoo
+        path = self.__download_weights_or_return_path(model_zoo=model_zoo)
 
-        path = self.__download_weights_or_return_path(model_size=model_size)
         assert os.path.exists(path), f'Could not find model weights at {path}.'
 
-        self.model = YOLO(model=path, task='segment')
-
+        self.model = YOLO(path, task="segment")  # Load the ONNX model using ONNX Runtime
+        
         self._conf_th = conf_th
         self._nms_iou = nms_iou
 
@@ -79,70 +78,47 @@ class QRDetector:
         # Predict
         results = self.model.predict(source=image, conf=self._conf_th, iou=self._nms_iou, half=False,
                                 device=None, max_det=100, augment=False, agnostic_nms=True,
-                                classes=None, verbose=False)
+                                classes=[0,1], verbose=False)
         assert len(results) == 1, f'Expected 1 result if no batch sent, got {len(results)}'
+        
         results = _yolo_v8_results_to_dict(results = results[0], image=image)
 
-        if 'legacy' in kwargs and kwargs['legacy']:
-            return self._parse_legacy_results(results=results, **kwargs)
         return results
 
 
-
-    def _parse_legacy_results(self, results, return_confidences: bool = True, **kwargs) \
-            -> tuple[tuple[list[float, float, float, float], float], ...] | tuple[list[float, float, float, float], ...]:
-        """
-        Parse the results to make it compatible with the legacy version of the library.
-        :param results: tuple[dict[str, np.ndarray|float|tuple[float, float]]]. The results to parse.
-        """
-        if return_confidences:
-            return tuple((result[BBOX_XYXY], result[CONFIDENCE]) for result in results)
-        else:
-            return tuple(result[BBOX_XYXY] for result in results)
-
-
-    def __download_weights_or_return_path(self, model_size: str = 's', desc: str = 'Downloading weights...') -> None:
+    def __download_weights_or_return_path(self, desc: str = 'Downloading weights...', model_zoo: str = None) -> None:
         """
         Download the weights of the YoloV8 QR Segmentation model.
-        :param model_size: str. The size of the model to download. Can be 's', 'm' or 'l'. Default: 's'.
+        :param model_size: str. The size of the model to download. Can be 's', 'm', or 'l'. Default: 's'.
         :param desc: str. The description of the download. Default: 'Downloading weights...'.
+        :param model_zoo: str. The URL of the model repository. Defaults to None, which uses the pre-defined URL.
         """
         self.downloading_model = True
-        path = os.path.join(self.weights_folder, _MODEL_FILE_NAME.format(size=model_size))
+
+        model_zoo_url = self._generate_presigned_url(model_zoo)
+
+        path = os.path.join(_WEIGHTS_FOLDER, _MODEL_FILE_NAME)
         if os.path.isfile(path):
-            if os.path.isfile(self.__current_release_txt_file):
-                # Compare the current release with the actual release URL
-                with open(self.__current_release_txt_file, 'r') as file:
+            if os.path.isfile(_CURRENT_RELEASE_TXT_FILE):
+                with open(_CURRENT_RELEASE_TXT_FILE, 'r') as file:
                     current_release = file.read()
-                # If the current release is the same as the URL, the weights are already downloaded.
-                if current_release == _WEIGHTS_URL_FOLDER:
+                if current_release == model_zoo:
                     self.downloading_model = False
                     return path
-        # Create the directory to save the weights.
-        elif not os.path.exists(self.weights_folder):
-            os.makedirs(self.weights_folder)
+        elif not os.path.exists(_WEIGHTS_FOLDER):
+            os.makedirs(_WEIGHTS_FOLDER)
 
-        url = f"{_WEIGHTS_URL_FOLDER}/{_MODEL_FILE_NAME.format(size=model_size)}"
-
-        # Download the weights.
-        from warnings import warn
-        warn("QRDetector has been updated to use the new YoloV8 model. Use legacy=True when calling detect "
-             "for backwards compatibility with 1.x versions. Or update to new output (new output is a tuple of dicts, "
-             "containing several new information (1.x output is accessible through 'bbox_xyxy' and 'confidence')."
-             "Forget this message if you are reading it from QReader. [This is a first download warning and will be removed at 2.1]")
-        response = requests.get(url, stream=True)
+        response = requests.get(model_zoo_url, stream=True)
         total_size_in_bytes = int(response.headers.get('content-length', 0))
         with tqdm.tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, desc=desc) as progress_bar:
             with open(path, 'wb') as file:
                 for data in response.iter_content(chunk_size=1024):
                     progress_bar.update(len(data))
                     file.write(data)
-        # Save the current release URL
-        with open(self.__current_release_txt_file, 'w') as file:
-            file.write(_WEIGHTS_URL_FOLDER)
-        # Check the weights were downloaded correctly.
+
+        with open(_CURRENT_RELEASE_TXT_FILE, 'w') as file:
+            file.write(model_zoo)
         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-            # Delete the weights if the download failed.
             os.remove(path)
             raise EOFError('Error, something went wrong while downloading the weights.')
 
@@ -155,3 +131,23 @@ class QRDetector:
             # If the weights didn't finish downloading, delete them.
             if hasattr(self, 'downloading_model') and self.downloading_model and os.path.isfile(path):
                 os.remove(path)
+
+    def _generate_presigned_url(self, model_zoo):
+        # Parse the provided URL
+        parsed_url = urlparse(model_zoo)
+        if parsed_url.netloc.endswith('amazonaws.com'):
+            bucket_name = parsed_url.netloc.split('.')[0]
+            object_name = parsed_url.path.lstrip('/')  # Remove the leading '/'
+            
+            # Create an S3 client
+            s3_client = boto3.client('s3')
+            try:
+                # Generate a presigned URL for the object
+                presigned_url = s3_client.generate_presigned_url('get_object',
+                                                                Params={'Bucket': bucket_name, 'Key': object_name},
+                                                                ExpiresIn=3600)
+                return presigned_url
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+        else:
+            print("Invalid S3 URL format")

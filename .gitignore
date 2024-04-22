@@ -5,7 +5,7 @@ dist/
 build/
 .yolov7_qrdet/
 qrdet/.model/
-
 .env
-
 .DS_Store
+virtualenv/
+resources/qrdet-*

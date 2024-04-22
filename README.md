@@ -1,3 +1,7 @@
+# viaPhoton Fork
+* Ultralytics 8.2.2 Update for Pytorch acceleration
+* ONNX Model @ fp16
+
 # QRDet
 **QRDet** is a robust **QR Detector** based on <a href="https://github.com/ultralytics/ultralytics" target="_blank">YOLOv8</a>.
 
@@ -20,7 +24,7 @@ There is only one function you'll need to call to use **QRDet**, ``detect``:
 from qrdet import QRDetector
 import cv2
 
-detector = QRDetector(model_size='s')
+detector = QRDetector(model_size='n')
 image = cv2.imread(filename='resources/qreader_test_image.jpeg')
 detections = detector.detect(image=image, is_bgr=True)
 
