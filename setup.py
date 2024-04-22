@@ -2,10 +2,10 @@ from setuptools import setup, find_namespace_packages
 
 setup(
     name='qrdet',
-    version='2.4',
+    version='2.4.1',
     author_email='eric@ericcanas.com',
-    author='Eric Canas',
-    url='https://github.com/Eric-Canas/qrdet',
+    author='Eric Canas; viaPhoton customization',
+    url='https://github.com/viaPhoton/qrdet',
     description='Robust QR Detector based on YOLOv8',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -13,9 +13,11 @@ setup(
     # expose qreader.py as the unique module
     license='MIT',
     install_requires=[
-        'ultralytics',
+        'ultralytics==8.2.2'
+        'onnx',
+        'onnxruntime',
         'quadrilateral-fitter',
-
+        'boto3',
         'numpy',
         'requests',
         'tqdm'
