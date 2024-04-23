@@ -18,7 +18,6 @@ from ultralytics import YOLO
 from qrdet import _yolo_v8_results_to_dict, _prepare_input, BBOX_XYXY, CONFIDENCE
 
 _WEIGHTS_FOLDER = os.path.join(os.path.dirname(__file__), '.model')
-_CURRENT_RELEASE_TXT_FILE = os.path.join(_WEIGHTS_FOLDER, 'current_release.txt')
 _MODEL_FILE_NAME = 'qrdet-viaphoton.onnx'
 
 
@@ -36,7 +35,7 @@ class QRDetector:
         """
         
         self.model_zoo = model_zoo
-        path = self.__download_weights_or_return_path(model_zoo=model_zoo)
+        path = self.return_path()
         assert os.path.exists(path), f'Could not find model weights at {path}.'
 
         self.model = YOLO(path, task="segment")  # Load the ONNX model using ONNX Runtime
@@ -80,59 +79,14 @@ class QRDetector:
         return results
 
 
-    def __download_weights_or_return_path(self, desc: str = 'Downloading weights...', model_zoo: str = None) -> None:
+    def return_path(self) -> str:
         """
-        Download the weights of the YoloV8 QR Segmentation model.
-        :param model_size: str. The size of the model to download. Can be 's', 'm', or 'l'. Default: 's'.
-        :param desc: str. The description of the download. Default: 'Downloading weights...'.
-        :param model_zoo: str. The URL of the model repository. Defaults to None, which uses the pre-defined URL.
+        Return the path to the weights file.
+        :return: str. The path to the weights file.
         """
-        self.downloading_model = True
-        model_zoo_url = self._generate_presigned_url(model_zoo)
-
+        
         path = os.path.join(_WEIGHTS_FOLDER, _MODEL_FILE_NAME)
         if os.path.isfile(path):
-            if os.path.isfile(_CURRENT_RELEASE_TXT_FILE):
-                with open(_CURRENT_RELEASE_TXT_FILE, 'r') as file:
-                    current_release = file.read()
-                if current_release == model_zoo:
-                    self.downloading_model = False
-                    return path
-        elif not os.path.exists(_WEIGHTS_FOLDER):
-            os.makedirs(_WEIGHTS_FOLDER)
-
-        response = requests.get(model_zoo_url, stream=True)
-        total_size_in_bytes = int(response.headers.get('content-length', 0))
-        with tqdm.tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, desc=desc) as progress_bar:
-            with open(path, 'wb') as file:
-                for data in response.iter_content(chunk_size=1024):
-                    progress_bar.update(len(data))
-                    file.write(data)
-        with open(_CURRENT_RELEASE_TXT_FILE, 'w') as file:
-            file.write(model_zoo)
-        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-            os.remove(path)
-            raise EOFError('Error, something went wrong while downloading the weights.')
-
-        self.downloading_model = False
-        return path
-    
-    def _generate_presigned_url(self, model_zoo):
-        # Parse the provided URL
-        parsed_url = urlparse(model_zoo)
-        if parsed_url.netloc.endswith('amazonaws.com'):
-            bucket_name = parsed_url.netloc.split('.')[0]
-            object_name = parsed_url.path.lstrip('/')  # Remove the leading '/'
-            
-            # Create an S3 client
-            s3_client = boto3.client('s3')
-            try:
-                # Generate a presigned URL for the object
-                presigned_url = s3_client.generate_presigned_url('get_object',
-                                                                Params={'Bucket': bucket_name, 'Key': object_name},
-                                                                ExpiresIn=3600)
-                return presigned_url
-            except Exception as e:
-                print(f"Error generating presigned URL: {e}")
+            return path
         else:
-            print("Invalid S3 URL format")
+            raise Exception('Error, file not found.')
