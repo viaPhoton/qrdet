@@ -19,7 +19,7 @@ from qrdet import _yolo_v8_results_to_dict, _prepare_input, BBOX_XYXY, CONFIDENC
 
 
 class QRDetector:
-    def __init__(self, model_zoo: str = None, conf_th: float = 0.5, nms_iou: float = 0.3):
+    def __init__(self, model_type: str = 'onnx', conf_th: float = 0.5, nms_iou: float = 0.3):
         """
         Initialize the QRDetector.
         It loads the weights of the YOLOv8 model and prepares it for inference.
@@ -31,8 +31,7 @@ class QRDetector:
                                 than this value will be discarded. Default: 0.3.
         """
         
-        self.model_zoo = model_zoo
-        path = self.safe_model_path()
+        path = self.safe_model_path( model_type )
 
         self.model = YOLO(path, task="segment")  # Load the ONNX model using ONNX Runtime
         
@@ -75,14 +74,14 @@ class QRDetector:
         return results
 
 
-    def safe_model_path(self) -> str:
+    def safe_model_path(self, model_type) -> str:
         """
         Return the path to the weights file.
         :return: str. The path to the weights file.
         """
         
-        path = '/app/tracker-daemon/models/viaphoton.onnx'
+        path = f'/app/tracker-daemon/models/viaphoton.{model_type}'
         if os.path.isfile(path):
             return path
         else:
-            raise Exception('Error, file not found.')
+            raise Exception(f'Error, file @ {path} not found.')
