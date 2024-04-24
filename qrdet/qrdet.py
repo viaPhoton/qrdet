@@ -34,13 +34,8 @@ class QRDetector:
         """
         
         self.model_zoo = model_zoo
-<<<<<<< HEAD
-        path = self.return_path()
-
-        assert os.path.exists(path), f'Could not find model weights at {path}.'
-=======
         path = self.safe_model_path()
->>>>>>> 09c1475 (Simplifying the model pathing logic)
+
 
         self.model = YOLO(path, task="segment")  # Load the ONNX model using ONNX Runtime
         
@@ -82,12 +77,8 @@ class QRDetector:
 
         return results
 
-<<<<<<< HEAD
-    def return_path(self) -> str:
-=======
-
     def safe_model_path(self) -> str:
->>>>>>> 09c1475 (Simplifying the model pathing logic)
+
         """
         Return the path to the weights file.
         :return: str. The path to the weights file.
