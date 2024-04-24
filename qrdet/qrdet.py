@@ -17,9 +17,6 @@ from ultralytics import YOLO
 
 from qrdet import _yolo_v8_results_to_dict, _prepare_input, BBOX_XYXY, CONFIDENCE
 
-_WEIGHTS_FOLDER = os.path.join(os.path.dirname(__file__), '.model')
-_MODEL_FILE_NAME = 'qrdet-viaphoton.onnx'
-
 
 class QRDetector:
     def __init__(self, model_zoo: str = None, conf_th: float = 0.5, nms_iou: float = 0.3):
@@ -35,8 +32,7 @@ class QRDetector:
         """
         
         self.model_zoo = model_zoo
-        path = self.return_path()
-        assert os.path.exists(path), f'Could not find model weights at {path}.'
+        path = self.safe_model_path()
 
         self.model = YOLO(path, task="segment")  # Load the ONNX model using ONNX Runtime
         
@@ -79,13 +75,13 @@ class QRDetector:
         return results
 
 
-    def return_path(self) -> str:
+    def safe_model_path(self) -> str:
         """
         Return the path to the weights file.
         :return: str. The path to the weights file.
         """
         
-        path = os.path.join(_WEIGHTS_FOLDER, _MODEL_FILE_NAME)
+        path = '/app/tracker-daemon/models/viaphoton.onnx'
         if os.path.isfile(path):
             return path
         else:
