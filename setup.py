@@ -2,7 +2,7 @@ from setuptools import setup, find_namespace_packages
 
 setup(
     name='qrdet',
-    version='2.4.1',
+    version='2.5.1',
     author_email='eric@ericcanas.com',
     author='Eric Canas; viaPhoton customization',
     url='https://github.com/viaPhoton/qrdet',
@@ -21,6 +21,7 @@ setup(
         'numpy',
         'requests',
         'tqdm'
+        'simpy==1.11.1'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',

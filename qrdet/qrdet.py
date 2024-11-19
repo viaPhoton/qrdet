@@ -8,9 +8,6 @@ Github: https://github.com/viaphoton/qrdet
 from __future__ import annotations
 import os
 import numpy as np
-import requests
-import tqdm
-import boto3
 from urllib.parse import urlparse
 
 from ultralytics import YOLO
@@ -19,7 +16,9 @@ from qrdet import _yolo_v8_results_to_dict, _prepare_input, BBOX_XYXY, CONFIDENC
 
 
 class QRDetector:
+
     def __init__(self, model_type: str = 'onnx', conf_th: float = 0.5, nms_iou: float = 0.3):
+
         """
         Initialize the QRDetector.
         It loads the weights of the YOLOv8 model and prepares it for inference.
