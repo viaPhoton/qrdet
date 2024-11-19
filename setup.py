@@ -13,15 +13,12 @@ setup(
     # expose qreader.py as the unique module
     license='MIT',
     install_requires=[
-        'ultralytics==8.2.2',
+        'ultralytics==8.3.33',
         'onnx',
         'onnxruntime',
         'quadrilateral-fitter',
-        'boto3',
         'numpy',
-        'requests',
         'tqdm'
-        'simpy==1.11.1'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',

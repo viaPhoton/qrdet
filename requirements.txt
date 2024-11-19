@@ -1,9 +1,6 @@
-ultralytics==8.2.2
+ultralytics==8.3.33
 onnx
 onnxruntime
 quadrilateral-fitter
-boto3
 numpy
-requests
-#sympy==1.11.1
 tqdm

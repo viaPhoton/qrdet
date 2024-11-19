@@ -17,20 +17,19 @@ from qrdet import _yolo_v8_results_to_dict, _prepare_input, BBOX_XYXY, CONFIDENC
 
 class QRDetector:
 
-    def __init__(self, model_type: str = 'onnx', conf_th: float = 0.5, nms_iou: float = 0.3):
+    def __init__(self, model_input: str = 'onnx', conf_th: float = 0.5, nms_iou: float = 0.3):
 
         """
         Initialize the QRDetector.
         It loads the weights of the YOLOv8 model and prepares it for inference.
-        :param model_size: str. The size of the model to use. It can be 'n' (nano), 's' (small), 'm' (medium) or
-                                'l' (large). Larger models are more accurate but slower. Default (and recommended): 's'.
+        :param model_input: str. Either a full path or a type of model to use. Default: 'onnx'.
         :param conf_th: float. The confidence threshold to use for the detections. Detection with a confidence lower
                                 than this value will be discarded. Default: 0.5.
         :param nms_iou: float. The IoU threshold to use for the Non-Maximum Suppression. Detections with an IoU higher
                                 than this value will be discarded. Default: 0.3.
         """
         
-        path = self.safe_model_path( model_type )
+        path = self.safe_model_path( model_input )
 
         self.model = YOLO(path, task="segment")  # Load the ONNX model using ONNX Runtime
         
@@ -73,13 +72,17 @@ class QRDetector:
         return results
 
 
-    def safe_model_path(self, model_type) -> str:
+    def safe_model_path(self, model_input) -> str:
         """
         Return the path to the weights file.
         :return: str. The path to the weights file.
         """
         
-        path = f'/app/tracker-daemon/models/viaphoton.{model_type}'
+        if model_input in ['pt', 'onnx']:
+            path = f'/app/tracker-daemon/models/viaphoton.{model_input}'
+        else:
+            path = model_input
+
         if os.path.isfile(path):
             return path
         else:
