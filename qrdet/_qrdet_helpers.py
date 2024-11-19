@@ -4,7 +4,7 @@ from ultralytics.engine.results import Results
 
 from qrdet import BBOX_XYXY, BBOX_XYXYN, POLYGON_XY, POLYGON_XYN,\
     CXCY, CXCYN, WH, WHN, IMAGE_SHAPE, CONFIDENCE, PADDED_QUAD_XY, PADDED_QUAD_XYN,\
-    QUAD_XY, QUAD_XYN
+    QUAD_XY, QUAD_XYN, CLASS
 
 from quadrilateral_fitter import QuadrilateralFitter
 import numpy as np
@@ -72,7 +72,8 @@ def _yolo_v8_results_to_dict(results: Results, image: np.ndarray) -> \
 
         assert len(boxes.conf) == 1, f'Expected confidence result to have length 1, got {len(result)}'
         confidence = float(boxes.conf[0])
-        assert len(boxes.cls) == 1 and int(boxes.cls[0]) == 0, f'Expected class to be always [0], got {boxes.cls}'
+        assert len(boxes.cls) == 1, f'Expected class to be always one detection, got {boxes.cls}'
+        class_id = int(boxes.cls[0])
 
         # Calculate center and width/height of the bounding box (post-clipping)
         cx, cy = float((bbox_xyxy[0] + bbox_xyxy[2])/2), float((bbox_xyxy[1] + bbox_xyxy[3])/2)
@@ -81,6 +82,8 @@ def _yolo_v8_results_to_dict(results: Results, image: np.ndarray) -> \
 
         detections.append({
             CONFIDENCE: confidence,
+
+            CLASS: class_id,
 
             BBOX_XYXY: bbox_xyxy,
             BBOX_XYXYN: bbox_xyxyn,

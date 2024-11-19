@@ -1,5 +1,6 @@
 # ------ DETECTION KEYS ------
 CONFIDENCE = 'confidence'
+CLASS = 'cls'
 
 # -------- BBOX KEYS --------
 BBOX_XYXY = 'bbox_xyxy'

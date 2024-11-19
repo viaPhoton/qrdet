@@ -64,7 +64,7 @@ class QRDetector:
         # Predict
         results = self.model.predict(source=image, conf=self._conf_th, iou=self._nms_iou, half=False,
                                 device=None, max_det=100, augment=False, agnostic_nms=True,
-                                classes=None, verbose=False)
+                                classes=[0,1], verbose=False)
         assert len(results) == 1, f'Expected 1 result if no batch sent, got {len(results)}'
         
         results = _yolo_v8_results_to_dict(results = results[0], image=image)
